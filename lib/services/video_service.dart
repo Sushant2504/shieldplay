@@ -64,6 +64,8 @@ class VideoService {
         thumbnail: 'https://example.com/thumbnail1.jpg',
         duration: const Duration(minutes: 5),
         source: VideoSource.network,
+        isCached: false,
+        qualities: {'1080p': 'https://example.com/video1.mp4'},
       ),
     ];
   }

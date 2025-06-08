@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:file_picker/file_picker.dart';
 import '../providers/video_provider.dart';
 import '../models/video_model.dart';
 import '../utils/constants.dart';
@@ -19,14 +20,33 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   bool _isGridView = true;
   final _searchController = TextEditingController();
   String _searchQuery = '';
+  bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    // Schedule the video loading after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadVideos();
+      if (mounted) {
+        _loadVideos();
+      }
     });
+  }
+
+  Future<void> _loadVideos() async {
+    if (!mounted) return;
+    
+    try {
+      await context.read<VideoProvider>().loadVideos();
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading videos: $e');
+    }
   }
 
   @override
@@ -34,11 +54,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadVideos() async {
-    if (!mounted) return;
-    await context.read<VideoProvider>().loadVideos();
   }
 
   List<VideoModel> _filterVideos(List<VideoModel> videos) {
@@ -58,6 +73,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           AppConstants.appName,
           style: TextStyle(color: AppConstants.textColor),
         ),
+        centerTitle: false,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(100),
           child: Column(
@@ -114,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       ),
       body: Consumer<VideoProvider>(
         builder: (context, videoProvider, child) {
-          if (videoProvider.isLoading) {
+          if (!_isInitialized || videoProvider.isLoading) {
             return UiUtils.buildLoadingIndicator();
           }
 
@@ -153,8 +169,25 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppConstants.primaryColor,
         onPressed: () async {
-          // TODO: Implement video picker
-          UiUtils.showSnackBar(context, 'Video picker coming soon!');
+          try {
+            final result = await FilePicker.platform.pickFiles(
+              type: FileType.video,
+              allowMultiple: true,
+              allowCompression: false,
+            );
+
+            if (result != null && result.files.isNotEmpty) {
+              final videoProvider = context.read<VideoProvider>();
+              for (final file in result.files) {
+                if (file.path != null) {
+                  await videoProvider.addLocalVideo(file.path!);
+                }
+              }
+              UiUtils.showSnackBar(context, 'Videos added successfully');
+            }
+          } catch (e) {
+            UiUtils.showSnackBar(context, 'Error picking videos: $e');
+          }
         },
         child: const Icon(Icons.add),
       ),
@@ -175,7 +208,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
 
     return RefreshIndicator(
-      onRefresh: _loadVideos,
+      onRefresh: () => videoProvider.loadVideos(),
       color: AppConstants.primaryColor,
       child: _isGridView ? _buildGridView(videos, videoProvider) : _buildListView(videos, videoProvider),
     );

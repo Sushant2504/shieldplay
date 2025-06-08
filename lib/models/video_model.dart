@@ -3,49 +3,48 @@ import 'package:flutter/material.dart';
 enum VideoSource {
   local,
   network,
-  cache,
 }
 
 class VideoModel {
   final String id;
   final String title;
   final String path;
-  final String thumbnail;
   final Duration duration;
+  final String thumbnail;
   final VideoSource source;
   final bool isCached;
-  final String? quality;
+  final Map<String, String> qualities;
 
   const VideoModel({
     required this.id,
     required this.title,
     required this.path,
-    required this.thumbnail,
     required this.duration,
-    this.source = VideoSource.network,
-    this.isCached = false,
-    this.quality,
+    required this.thumbnail,
+    required this.source,
+    required this.isCached,
+    required this.qualities,
   });
 
   VideoModel copyWith({
     String? id,
     String? title,
     String? path,
-    String? thumbnail,
     Duration? duration,
+    String? thumbnail,
     VideoSource? source,
     bool? isCached,
-    String? quality,
+    Map<String, String>? qualities,
   }) {
     return VideoModel(
       id: id ?? this.id,
       title: title ?? this.title,
       path: path ?? this.path,
-      thumbnail: thumbnail ?? this.thumbnail,
       duration: duration ?? this.duration,
+      thumbnail: thumbnail ?? this.thumbnail,
       source: source ?? this.source,
       isCached: isCached ?? this.isCached,
-      quality: quality ?? this.quality,
+      qualities: qualities ?? this.qualities,
     );
   }
 
@@ -54,11 +53,11 @@ class VideoModel {
       'id': id,
       'title': title,
       'path': path,
-      'thumbnail': thumbnail, 
       'duration': duration.inSeconds,
+      'thumbnail': thumbnail,
       'source': source.toString(),
       'isCached': isCached,
-      'quality': quality,
+      'qualities': qualities,
     };
   }
 
@@ -67,11 +66,14 @@ class VideoModel {
       id: json['id'] as String,
       title: json['title'] as String,
       path: json['path'] as String,
-      thumbnail: json['thumbnail'] as String,
       duration: Duration(seconds: json['duration'] as int),
-      source: VideoSource.values[json['source'] as int],
-      isCached: json['isCached'] as bool? ?? false,
-      quality: json['quality'] as String?,
+      thumbnail: json['thumbnail'] as String,
+      source: VideoSource.values.firstWhere(
+        (e) => e.toString() == json['source'],
+        orElse: () => VideoSource.local,
+      ),
+      isCached: json['isCached'] as bool,
+      qualities: Map<String, String>.from(json['qualities'] as Map),
     );
   }
 }

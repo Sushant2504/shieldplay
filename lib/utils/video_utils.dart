@@ -56,6 +56,8 @@ class VideoUtils {
       duration: duration,
       thumbnail: getVideoThumbnail(filePath),
       source: VideoSource.local,
+      isCached: false,
+      qualities: {'auto': filePath},
     );
   }
 

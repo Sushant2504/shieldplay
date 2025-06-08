@@ -64,7 +64,7 @@ class MyApp extends StatelessWidget {
             colorScheme: ColorScheme.light(
               primary: AppConstants.primaryColor,
               secondary: AppConstants.secondaryColor,
-              background: Colors.grey[50]!,
+              background: Colors.white,
               surface: Colors.white,
               onPrimary: Colors.white,
               onSecondary: Colors.white,
@@ -72,10 +72,11 @@ class MyApp extends StatelessWidget {
               onSurface: Colors.black87,
             ),
             appBarTheme: AppBarTheme(
-              backgroundColor: Colors.grey[50],
+              backgroundColor: Colors.white,
               foregroundColor: Colors.black87,
               elevation: 0,
               centerTitle: true,
+              iconTheme: const IconThemeData(color: Colors.black87),
             ),
             cardTheme: CardThemeData(
               color: Colors.white,
@@ -84,8 +85,8 @@ class MyApp extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            scaffoldBackgroundColor: Colors.grey[50],
-            textTheme: TextTheme(
+            scaffoldBackgroundColor: Colors.white,
+            textTheme: const TextTheme(
               titleLarge: TextStyle(
                 color: Colors.black87,
                 fontWeight: FontWeight.bold,
@@ -101,10 +102,45 @@ class MyApp extends StatelessWidget {
                 color: Colors.black87,
               ),
             ),
-            iconTheme: IconThemeData(
+            iconTheme: const IconThemeData(
               color: Colors.black87,
             ),
+            dividerTheme: DividerThemeData(
+              color: Colors.grey[200],
+            ),
+            bottomNavigationBarTheme: BottomNavigationBarThemeData(
+              backgroundColor: Colors.white,
+              selectedItemColor: AppConstants.primaryColor,
+              unselectedItemColor: Colors.grey[600],
+            ),
+            inputDecorationTheme: InputDecorationTheme(
+              filled: true,
+              fillColor: Colors.grey[50],
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppConstants.primaryColor),
+              ),
+            ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppConstants.primaryColor,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
           ),
+          
           darkTheme: ThemeData(
             useMaterial3: true,
             brightness: Brightness.dark,
@@ -123,6 +159,7 @@ class MyApp extends StatelessWidget {
               foregroundColor: Colors.white,
               elevation: 0,
               centerTitle: true,
+              iconTheme: const IconThemeData(color: Colors.white),
             ),
             cardTheme: CardThemeData(
               color: Colors.grey[800],
@@ -132,7 +169,7 @@ class MyApp extends StatelessWidget {
               ),
             ),
             scaffoldBackgroundColor: Colors.grey[900],
-            textTheme: TextTheme(
+            textTheme: const TextTheme(
               titleLarge: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -148,7 +185,7 @@ class MyApp extends StatelessWidget {
                 color: Colors.white,
               ),
             ),
-            iconTheme: IconThemeData(
+            iconTheme: const IconThemeData(
               color: Colors.white,
             ),
             dividerTheme: DividerThemeData(
@@ -158,6 +195,32 @@ class MyApp extends StatelessWidget {
               backgroundColor: Colors.grey[900],
               selectedItemColor: AppConstants.primaryColor,
               unselectedItemColor: Colors.grey[400],
+            ),
+            inputDecorationTheme: InputDecorationTheme(
+              filled: true,
+              fillColor: Colors.grey[800],
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppConstants.primaryColor),
+              ),
+            ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppConstants.primaryColor,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
           ),
           themeMode: themeProvider.themeMode,

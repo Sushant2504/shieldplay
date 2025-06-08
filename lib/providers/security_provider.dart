@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/security_service.dart';
 
 class SecurityProvider extends ChangeNotifier {
   final SecurityService _securityService;
-  bool _isScreenshotProtectionEnabled = false;
-  int _screenshotCount = 0;
+  bool _isScreenshotProtectionEnabled = true;
   bool _isSecureMode = false;
-  String _watermarkText = '';
+  int _screenshotCount = 0;
+  String _watermarkText = 'ShieldPlay';
   bool _isInitialized = false;
 
   SecurityProvider(this._securityService) {
     _initialize();
+    _initializeScreenshotProtection();
   }
 
   bool get isScreenshotProtectionEnabled => _isScreenshotProtectionEnabled;
-  int get screenshotCount => _screenshotCount;
   bool get isSecureMode => _isSecureMode;
+  int get screenshotCount => _screenshotCount;
   String get watermarkText => _watermarkText;
   bool get isInitialized => _isInitialized;
 
@@ -33,56 +35,54 @@ class SecurityProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> toggleScreenshotProtection() async {
+  void _initializeScreenshotProtection() {
     if (_isScreenshotProtectionEnabled) {
-      await _securityService.disableScreenshotProtection();
-    } else {
-      await _securityService.enableScreenshotProtection();
+      _securityService.enableScreenshotProtection(
+        onScreenshotAttempt: _handleScreenshotAttempt,
+      );
     }
-    _isScreenshotProtectionEnabled = !_isScreenshotProtectionEnabled;
-    notifyListeners();
   }
 
-  Future<void> incrementScreenshotCount() async {
+  void _handleScreenshotAttempt() {
     _screenshotCount++;
-    await _securityService.setScreenshotCount(_screenshotCount);
+    notifyListeners();
+    
+    // Show a popup notification
+    _showScreenshotWarning();
+  }
+
+  void _showScreenshotWarning() {
+    // We'll use a static method to show the dialog since we don't have direct access to BuildContext
+    SecurityService.showScreenshotWarning();
+  }
+
+  void toggleScreenshotProtection() {
+    _isScreenshotProtectionEnabled = !_isScreenshotProtectionEnabled;
+    if (_isScreenshotProtectionEnabled) {
+      _initializeScreenshotProtection();
+    } else {
+      _securityService.disableScreenshotProtection();
+    }
     notifyListeners();
   }
 
-  Future<void> resetScreenshotCount() async {
+  void toggleSecureMode() {
+    _isSecureMode = !_isSecureMode;
+    if (_isSecureMode) {
+      _isScreenshotProtectionEnabled = true;
+      _initializeScreenshotProtection();
+    }
+    notifyListeners();
+  }
+
+  void resetScreenshotCount() {
     _screenshotCount = 0;
-    await _securityService.setScreenshotCount(_screenshotCount);
     notifyListeners();
   }
 
-  Future<void> setWatermarkText(String text) async {
-    if (!_isInitialized) return;
-
-    try {
-      _watermarkText = text;
-      await _securityService.setWatermarkText(text);
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error setting watermark text: $e');
-      // Revert the state if the operation failed
-      _watermarkText = _securityService.getWatermarkText();
-      notifyListeners();
-    }
-  }
-
-  Future<void> toggleSecureMode() async {
-    if (!_isInitialized) return;
-
-    try {
-      _isSecureMode = !_isSecureMode;
-      await _securityService.setSecureMode(_isSecureMode);
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error toggling secure mode: $e');
-      // Revert the state if the operation failed
-      _isSecureMode = !_isSecureMode;
-      notifyListeners();
-    }
+  void setWatermarkText(String text) {
+    _watermarkText = text;
+    notifyListeners();
   }
 
   String getWatermarkTextWithTimestamp() {
