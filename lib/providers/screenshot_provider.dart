@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../services/screenshot_service.dart';
 
 class ScreenshotProvider extends ChangeNotifier {
   final ScreenshotService _screenshotService;
-  static const platform = MethodChannel('com.shieldplay.screenshot');
   bool _isScreenshotProtectionEnabled = false;
   int _screenshotCount = 0;
 
   ScreenshotProvider(this._screenshotService) {
     _initialize();
-    _setupMethodCallHandler();
   }
 
   bool get isScreenshotProtectionEnabled => _isScreenshotProtectionEnabled;
@@ -22,29 +19,9 @@ class ScreenshotProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _setupMethodCallHandler() {
-    platform.setMethodCallHandler((call) async {
-      if (call.method == 'onScreenshotTaken') {
-        await _handleScreenshot();
-      }
-    });
-  }
-
-  Future<void> _handleScreenshot() async {
-    if (_isScreenshotProtectionEnabled) {
-      _screenshotCount++;
-      await _screenshotService.setScreenshotCount(_screenshotCount);
-      notifyListeners();
-    }
-  }
-
   Future<void> toggleScreenshotProtection() async {
     _isScreenshotProtectionEnabled = !_isScreenshotProtectionEnabled;
-    if (_isScreenshotProtectionEnabled) {
-      await _screenshotService.enableScreenshotProtection();
-    } else {
-      await _screenshotService.disableScreenshotProtection();
-    }
+    await _screenshotService.setSecureMode(_isScreenshotProtectionEnabled);
     notifyListeners();
   }
 
@@ -52,11 +29,5 @@ class ScreenshotProvider extends ChangeNotifier {
     _screenshotCount = 0;
     await _screenshotService.resetScreenshotCount();
     notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    platform.setMethodCallHandler(null);
-    super.dispose();
   }
 } 

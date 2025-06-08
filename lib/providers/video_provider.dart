@@ -264,9 +264,20 @@ class VideoProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> stopAndDispose() async {
+    if (_controller != null) {
+      await _controller!.pause();
+      await _controller!.dispose();
+      _controller = null;
+      _isPlaying = false;
+      _isBuffering = false;
+      notifyListeners();
+    }
+  }
+
   @override
   void dispose() {
-    _controller?.dispose();
+    stopAndDispose();
     super.dispose();
   }
 } 

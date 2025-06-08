@@ -26,8 +26,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
   bool _isInitialized = false;
   bool _showQualityMenu = false;
   bool _showSpeedMenu = false;
-  bool _isMuted = false;
-  double _volume = 1.0;
   Timer? _watermarkTimer;
   String _currentWatermark = '';
 
@@ -36,17 +34,37 @@ class _PlayerScreenState extends State<PlayerScreen> {
     super.initState();
     _initializeVideo();
     _startWatermarkTimer();
+    _setupScreenshotProtection();
+  }
+
+  void _setupScreenshotProtection() {
+    final securityProvider = context.read<SecurityProvider>();
+    if (securityProvider.isScreenshotProtectionEnabled) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _handleScreenshotAttempt();
+        }
+      });
+    }
+  }
+
+  void _handleScreenshotAttempt() {
+    final videoProvider = context.read<VideoProvider>();
+    if (videoProvider.isPlaying) {
+      videoProvider.togglePlay(); // Pause video when screenshot is attempted
+    }
   }
 
   @override
   void dispose() {
     _watermarkTimer?.cancel();
+    context.read<VideoProvider>().stopAndDispose();
     super.dispose();
   }
 
   void _startWatermarkTimer() {
     _updateWatermark();
-    _watermarkTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _watermarkTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       _updateWatermark();
     });
   }
@@ -104,33 +122,36 @@ class _PlayerScreenState extends State<PlayerScreen> {
     });
   }
 
-  Future<void> _toggleMute() async {
+  List<double> _getAvailableSpeeds(SecurityProvider securityProvider) {
+    if (securityProvider.isSecureMode) {
+      return [0.5, 1.0, 1.5, 2.0]; // Limited speeds in secure mode
+    }
+    return [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0]; // Full range of speeds
+  }
+
+  Future<void> _rewindVideo() async {
     final videoProvider = context.read<VideoProvider>();
     if (videoProvider.controller == null) return;
     
     try {
-      setState(() {
-        _isMuted = !_isMuted;
-        _volume = _isMuted ? 0.0 : 1.0;
-      });
-      await videoProvider.controller!.setVolume(_volume);
+      final newPosition = videoProvider.currentPosition - const Duration(seconds: 10);
+      await videoProvider.seekTo(newPosition > Duration.zero ? newPosition : Duration.zero);
     } catch (e) {
-      debugPrint('Error toggling mute: $e');
+      debugPrint('Error rewinding video: $e');
     }
   }
 
-  Future<void> _setVolume(double value) async {
+  Future<void> _forwardVideo() async {
     final videoProvider = context.read<VideoProvider>();
     if (videoProvider.controller == null) return;
     
     try {
-      setState(() {
-        _volume = value;
-        _isMuted = value == 0.0;
-      });
-      await videoProvider.controller!.setVolume(value);
+      final newPosition = videoProvider.currentPosition + const Duration(seconds: 10);
+      if (newPosition < videoProvider.totalDuration) {
+        await videoProvider.seekTo(newPosition);
+      }
     } catch (e) {
-      debugPrint('Error setting volume: $e');
+      debugPrint('Error forwarding video: $e');
     }
   }
 
@@ -146,7 +167,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
               elevation: 0,
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () => GoRouter.of(context).pop(),
+                onPressed: () {
+                  context.read<VideoProvider>().stopAndDispose();
+                  GoRouter.of(context).pop();
+                },
               ),
             ),
             body: Center(
@@ -277,7 +301,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           children: [
                             IconButton(
                               icon: const Icon(Icons.arrow_back, color: Colors.white),
-                              onPressed: () => GoRouter.of(context).pop(),
+                              onPressed: () {
+                                context.read<VideoProvider>().stopAndDispose();
+                                GoRouter.of(context).pop();
+                              },
                             ),
                             const Spacer(),
                             IconButton(
@@ -321,12 +348,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            ...['0.5x', '1.0x', '1.5x', '2.0x'].map((speed) {
-                              final speedValue = double.parse(speed.replaceAll('x', ''));
-                              final isSelected = videoProvider.playbackSpeed == speedValue;
+                            ..._getAvailableSpeeds(securityProvider).map((speed) {
+                              final speedText = '${speed.toStringAsFixed(1)}x';
+                              final isSelected = videoProvider.playbackSpeed == speed;
                               return InkWell(
                                 onTap: () {
-                                  videoProvider.setPlaybackSpeed(speedValue);
+                                  videoProvider.setPlaybackSpeed(speed);
                                   _toggleSpeedMenu();
                                 },
                                 child: Padding(
@@ -340,7 +367,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
-                                        speed,
+                                        speedText,
                                         style: TextStyle(
                                           color: isSelected ? AppConstants.primaryColor : Colors.white,
                                         ),
@@ -439,33 +466,25 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             Row(
                               children: [
                                 IconButton(
+                                  icon: const Icon(Icons.replay_10, color: Colors.white),
+                                  onPressed: _rewindVideo,
+                                ),
+                                IconButton(
                                   icon: Icon(
                                     videoProvider.isPlaying ? Icons.pause : Icons.play_arrow,
                                     color: Colors.white,
                                   ),
                                   onPressed: () => videoProvider.togglePlay(),
                                 ),
+                                IconButton(
+                                  icon: const Icon(Icons.forward_10, color: Colors.white),
+                                  onPressed: _forwardVideo,
+                                ),
                                 Text(
                                   '${VideoUtils.formatDuration(videoProvider.currentPosition)} / ${VideoUtils.formatDuration(videoProvider.totalDuration)}',
                                   style: const TextStyle(color: Colors.white),
                                 ),
                                 const Spacer(),
-                                IconButton(
-                                  icon: Icon(
-                                    _isMuted ? Icons.volume_off : Icons.volume_up,
-                                    color: Colors.white,
-                                  ),
-                                  onPressed: _toggleMute,
-                                ),
-                                SizedBox(
-                                  width: 100,
-                                  child: Slider(
-                                    value: _volume,
-                                    onChanged: _setVolume,
-                                    activeColor: AppConstants.primaryColor,
-                                    inactiveColor: Colors.grey[400],
-                                  ),
-                                ),
                                 if (securityProvider.watermarkText.isNotEmpty)
                                   Padding(
                                     padding: const EdgeInsets.only(right: 8.0),

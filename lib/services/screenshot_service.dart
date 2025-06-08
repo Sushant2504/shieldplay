@@ -1,66 +1,69 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
 
 class ScreenshotService {
   static const String _screenshotProtectionKey = 'screenshot_protection';
   static const String _screenshotCountKey = 'screenshot_count';
   static const platform = MethodChannel('com.shieldplay.screenshot');
+  static const _screenshotEventChannel = EventChannel('com.shieldplay.screenshot/events');
   late SharedPreferences _prefs;
   bool _isInitialized = false;
+  StreamSubscription? _screenshotSubscription;
+  Function? _onScreenshotAttempt;
 
   ScreenshotService();
 
   Future<void> initialize() async {
-    if (_isInitialized) return;
-    
-    _prefs = await SharedPreferences.getInstance();
-    _isInitialized = true;
-  }
-
-  bool isScreenshotProtectionEnabled() {
-    if (!_isInitialized) return false;
-    return _prefs.getBool(_screenshotProtectionKey) ?? false;
-  }
-
-  Future<void> enableScreenshotProtection() async {
-    if (!_isInitialized) return;
-    
     try {
-      await platform.invokeMethod('enableScreenshotProtection');
-      await _prefs.setBool(_screenshotProtectionKey, true);
+      await platform.invokeMethod('initializeScreenshotProtection');
+      _isInitialized = true;
     } catch (e) {
-      throw Exception('Failed to enable screenshot protection: $e');
+      print('Error initializing screenshot protection: $e');
     }
   }
 
-  Future<void> disableScreenshotProtection() async {
-    if (!_isInitialized) return;
-    
-    try {
-      await platform.invokeMethod('disableScreenshotProtection');
-      await _prefs.setBool(_screenshotProtectionKey, false);
-    } catch (e) {
-      throw Exception('Failed to disable screenshot protection: $e');
+  Future<bool> isScreenshotProtectionEnabled() async {
+    return _isInitialized;
+  }
+
+  void enableScreenshotProtection({Function? onScreenshotAttempt}) {
+    _onScreenshotAttempt = onScreenshotAttempt;
+    _screenshotSubscription?.cancel();
+    _screenshotSubscription = _screenshotEventChannel
+        .receiveBroadcastStream()
+        .listen(_handleScreenshotEvent);
+  }
+
+  void disableScreenshotProtection() {
+    _screenshotSubscription?.cancel();
+    _screenshotSubscription = null;
+    _onScreenshotAttempt = null;
+  }
+
+  void _handleScreenshotEvent(dynamic event) {
+    if (_onScreenshotAttempt != null) {
+      _onScreenshotAttempt!();
     }
   }
 
-  int getScreenshotCount() {
-    if (!_isInitialized) return 0;
-    return _prefs.getInt(_screenshotCountKey) ?? 0;
+  Future<void> setSecureMode(bool enabled) async {
+    try {
+      await platform.invokeMethod('setSecureMode', {'enabled': enabled});
+    } catch (e) {
+      print('Error setting secure mode: $e');
+    }
+  }
+
+  Future<int> getScreenshotCount() async {
+    return 0; // Implement if you want to track screenshot attempts
   }
 
   Future<void> setScreenshotCount(int count) async {
-    if (!_isInitialized) return;
-    await _prefs.setInt(_screenshotCountKey, count);
-  }
-
-  Future<void> handleScreenshot() async {
-    final count = await getScreenshotCount();
-    await setScreenshotCount(count + 1);
+    // Implement if you want to track screenshot attempts
   }
 
   Future<void> resetScreenshotCount() async {
-    if (!_isInitialized) return;
-    await _prefs.setInt(_screenshotCountKey, 0);
+    // Implement if you want to track screenshot attempts
   }
 } 
