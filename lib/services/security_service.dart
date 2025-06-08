@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../utils/constants.dart';
 
 class SecurityService {
   static const String _screenshotProtectionKey = 'screenshot_protection';

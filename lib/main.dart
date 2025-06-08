@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/home_screen.dart';
 import 'screens/player_screen.dart';
 import 'screens/settings_screen.dart';
@@ -13,7 +12,6 @@ import 'providers/theme_provider.dart';
 import 'services/video_service.dart';
 import 'services/security_service.dart';
 import 'services/screenshot_service.dart';
-import 'utils/ui_utils.dart';
 import 'utils/constants.dart';
 
 void main() async {
@@ -58,6 +56,7 @@ class MyApp extends StatelessWidget {
       builder: (context, themeProvider, child) {
         return MaterialApp.router(
           title: AppConstants.appName,
+          debugShowCheckedModeBanner: false,
           theme: ThemeData(
             useMaterial3: true,
             brightness: Brightness.light,

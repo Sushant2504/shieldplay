@@ -66,4 +66,10 @@ class ScreenshotService {
   Future<void> resetScreenshotCount() async {
     // Implement if you want to track screenshot attempts
   }
+
+  void handleScreenshotAttempt() {
+    if (_onScreenshotAttempt != null) {
+      _onScreenshotAttempt!();
+    }
+  }
 } 

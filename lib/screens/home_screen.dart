@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import '../providers/video_provider.dart';
+import '../providers/theme_provider.dart';
 import '../models/video_model.dart';
 import '../utils/constants.dart';
 import '../utils/ui_utils.dart';
@@ -65,13 +66,20 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
+    final isDark = themeProvider.isDarkMode;
+    final backgroundColor = isDark ? Colors.grey[900]! : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+    final cardColor = isDark ? Colors.grey[800]! : Colors.white;
+    final secondaryTextColor = isDark ? Colors.grey[400]! : Colors.grey[600]!;
+
     return Scaffold(
-      backgroundColor: AppConstants.backgroundColor,
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        backgroundColor: AppConstants.backgroundColor,
-        title: const Text(
+        backgroundColor: backgroundColor,
+        title: Text(
           AppConstants.appName,
-          style: TextStyle(color: AppConstants.textColor),
+          style: TextStyle(color: textColor),
         ),
         centerTitle: false,
         bottom: PreferredSize(
@@ -82,16 +90,24 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 padding: const EdgeInsets.all(8.0),
                 child: TextField(
                   controller: _searchController,
-                  style: const TextStyle(color: AppConstants.textColor),
+                  style: TextStyle(color: textColor),
                   decoration: InputDecoration(
                     hintText: 'Search videos...',
-                    hintStyle: TextStyle(color: AppConstants.secondaryTextColor),
-                    prefixIcon: const Icon(Icons.search, color: AppConstants.secondaryTextColor),
+                    hintStyle: TextStyle(color: secondaryTextColor),
+                    prefixIcon: Icon(Icons.search, color: secondaryTextColor),
                     filled: true,
-                    fillColor: AppConstants.cardColor,
+                    fillColor: cardColor,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppConstants.defaultBorderRadius),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(color: secondaryTextColor),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppConstants.defaultBorderRadius),
+                      borderSide: BorderSide(color: secondaryTextColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppConstants.defaultBorderRadius),
+                      borderSide: BorderSide(color: AppConstants.primaryColor),
                     ),
                   ),
                   onChanged: (value) => setState(() => _searchQuery = value),
@@ -101,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 controller: _tabController,
                 indicatorColor: AppConstants.primaryColor,
                 labelColor: AppConstants.primaryColor,
-                unselectedLabelColor: AppConstants.secondaryTextColor,
+                unselectedLabelColor: secondaryTextColor,
                 tabs: const [
                   Tab(text: 'Videos'),
                   Tab(text: 'Playlists'),
@@ -114,17 +130,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           IconButton(
             icon: Icon(
               _isGridView ? Icons.view_list : Icons.grid_view,
-              color: AppConstants.textColor,
+              color: textColor,
             ),
             onPressed: () => setState(() => _isGridView = !_isGridView),
           ),
           IconButton(
-            icon: const Icon(Icons.settings, color: AppConstants.textColor),
+            icon: Icon(Icons.settings, color: textColor),
             onPressed: () => GoRouter.of(context).push('/settings'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.security, color: AppConstants.textColor),
-            onPressed: () => GoRouter.of(context).push('/security'),
           ),
         ],
       ),
@@ -148,6 +160,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 videos: _filterVideos(videoProvider.videos),
                 videoProvider: videoProvider,
                 emptyMessage: 'No videos available',
+                isDark: isDark,
+                textColor: textColor,
+                cardColor: cardColor,
               ),
               _buildPlaylistList(
                 playlists: [
@@ -161,6 +176,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   },
                 ] as List<Map<String, dynamic>>,
                 videoProvider: videoProvider,
+                isDark: isDark,
+                textColor: textColor,
+                cardColor: cardColor,
               ),
             ],
           );
@@ -198,6 +216,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     required List<VideoModel> videos,
     required VideoProvider videoProvider,
     required String emptyMessage,
+    required bool isDark,
+    required Color textColor,
+    required Color cardColor,
   }) {
     if (videos.isEmpty) {
       return UiUtils.buildEmptyWidget(
@@ -210,28 +231,40 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     return RefreshIndicator(
       onRefresh: () => videoProvider.loadVideos(),
       color: AppConstants.primaryColor,
-      child: _isGridView ? _buildGridView(videos, videoProvider) : _buildListView(videos, videoProvider),
+      child: _isGridView ? _buildGridView(videos, videoProvider, isDark, textColor, cardColor) : _buildListView(videos, videoProvider, isDark, textColor, cardColor),
     );
   }
 
-  Widget _buildGridView(List<VideoModel> videos, VideoProvider videoProvider) {
+  Widget _buildGridView(
+    List<VideoModel> videos, 
+    VideoProvider videoProvider,
+    bool isDark,
+    Color textColor,
+    Color cardColor,
+  ) {
     return GridView.builder(
       padding: const EdgeInsets.all(AppConstants.gridSpacing),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 1, // Square aspect ratio
+        childAspectRatio: 1,
         crossAxisSpacing: AppConstants.gridSpacing,
         mainAxisSpacing: AppConstants.gridSpacing,
       ),
       itemCount: videos.length,
       itemBuilder: (context, index) {
         final video = videos[index];
-        return _buildGridItem(context, video, videoProvider);
+        return _buildGridItem(context, video, videoProvider, isDark, textColor, cardColor);
       },
     );
   }
 
-  Widget _buildListView(List<VideoModel> videos, VideoProvider videoProvider) {
+  Widget _buildListView(
+    List<VideoModel> videos, 
+    VideoProvider videoProvider,
+    bool isDark,
+    Color textColor,
+    Color cardColor,
+  ) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWideScreen = constraints.maxWidth > 600;
@@ -240,7 +273,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           itemCount: videos.length,
           itemBuilder: (context, index) {
             final video = videos[index];
-            return _buildListItem(context, video, videoProvider, isWideScreen);
+            return _buildListItem(context, video, videoProvider, isWideScreen, isDark, textColor, cardColor);
           },
         );
       },
@@ -251,11 +284,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     BuildContext context,
     VideoModel video,
     VideoProvider videoProvider,
+    bool isDark,
+    Color textColor,
+    Color cardColor,
   ) {
     return GestureDetector(
       onTap: () => GoRouter.of(context).push('/player/${video.id}'),
       child: Card(
-        color: AppConstants.cardColor,
+        color: cardColor,
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -267,10 +303,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
-                          color: Colors.grey[800],
-                          child: const Icon(
+                          color: isDark ? Colors.grey[800] : Colors.grey[200],
+                          child: Icon(
                             Icons.video_library,
-                            color: Colors.grey,
+                            color: isDark ? Colors.grey[600] : Colors.grey[400],
                             size: 48,
                           ),
                         );
@@ -281,10 +317,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
-                          color: Colors.grey[800],
-                          child: const Icon(
+                          color: isDark ? Colors.grey[800] : Colors.grey[200],
+                          child: Icon(
                             Icons.video_library,
-                            color: Colors.grey,
+                            color: isDark ? Colors.grey[600] : Colors.grey[400],
                             size: 48,
                           ),
                         );
@@ -336,9 +372,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     VideoModel video,
     VideoProvider videoProvider,
     bool isWideScreen,
+    bool isDark,
+    Color textColor,
+    Color cardColor,
   ) {
     return Card(
-      color: AppConstants.cardColor,
+      color: cardColor,
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: ListTile(
         contentPadding: const EdgeInsets.all(8),
@@ -354,10 +393,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
-                            color: Colors.grey[800],
-                            child: const Icon(
+                            color: isDark ? Colors.grey[800] : Colors.grey[200],
+                            child: Icon(
                               Icons.video_library,
-                              color: Colors.grey,
+                              color: isDark ? Colors.grey[600] : Colors.grey[400],
                               size: 48,
                             ),
                           );
@@ -368,10 +407,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
-                            color: Colors.grey[800],
-                            child: const Icon(
+                            color: isDark ? Colors.grey[800] : Colors.grey[200],
+                            child: Icon(
                               Icons.video_library,
-                              color: Colors.grey,
+                              color: isDark ? Colors.grey[600] : Colors.grey[400],
                               size: 48,
                             ),
                           );
@@ -401,7 +440,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         title: Text(
           video.title,
           style: TextStyle(
-            color: AppConstants.textColor,
+            color: textColor,
             fontWeight: FontWeight.bold,
             fontSize: isWideScreen ? 16 : 14,
           ),
@@ -437,6 +476,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Widget _buildPlaylistList({
     required List<Map<String, dynamic>> playlists,
     required VideoProvider videoProvider,
+    required bool isDark,
+    required Color textColor,
+    required Color cardColor,
   }) {
     if (playlists.isEmpty) {
       return UiUtils.buildEmptyWidget('No playlists available');
@@ -447,18 +489,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       itemBuilder: (context, index) {
         final playlist = playlists[index];
         return Card(
-          color: AppConstants.cardColor,
+          color: cardColor,
           margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           child: ExpansionTile(
             title: Text(
               playlist['title'] as String,
-              style: const TextStyle(
-                color: AppConstants.textColor,
+              style: TextStyle(
+                color: textColor,
                 fontWeight: FontWeight.bold,
               ),
             ),
             children: (playlist['videos'] as List<VideoModel>).map((video) {
-              return _buildListItem(context, video, videoProvider, true);
+              return _buildListItem(context, video, videoProvider, true, isDark, textColor, cardColor);
             }).toList(),
           ),
         );

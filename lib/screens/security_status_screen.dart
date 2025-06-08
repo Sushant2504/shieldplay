@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/security_provider.dart';
 import '../providers/screenshot_provider.dart';
-import '../providers/video_provider.dart';
 
 class SecurityStatusScreen extends StatelessWidget {
   const SecurityStatusScreen({super.key});

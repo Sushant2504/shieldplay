@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 import '../providers/video_provider.dart';
 import '../providers/security_provider.dart';
+import '../providers/screenshot_provider.dart';
 import '../utils/constants.dart';
 import '../utils/video_utils.dart';
 import 'dart:async';
@@ -38,26 +39,70 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   void _setupScreenshotProtection() {
-    final securityProvider = context.read<SecurityProvider>();
-    if (securityProvider.isScreenshotProtectionEnabled) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _handleScreenshotAttempt();
-        }
-      });
-    }
+    final screenshotService = context.read<ScreenshotProvider>().screenshotService;
+    screenshotService.enableScreenshotProtection(
+      onScreenshotAttempt: _handleScreenshotAttempt,
+    );
   }
 
-  void _handleScreenshotAttempt() {
+  void _handleScreenshotAttempt() async {
     final videoProvider = context.read<VideoProvider>();
-    if (videoProvider.isPlaying) {
-      videoProvider.togglePlay(); // Pause video when screenshot is attempted
-    }
+    final screenshotProvider = context.read<ScreenshotProvider>();
+    
+    // First pause the video
+    await videoProvider.controller!.pause();
+    
+    // Then increment screenshot count
+    await screenshotProvider.incrementScreenshotCount();
+    
+    // Finally show warning dialog
+    _showScreenshotWarning();
+  }
+
+  void _showScreenshotWarning() {
+    final screenshotCount = context.read<ScreenshotProvider>().screenshotCount;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Screenshot Blocked'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Screenshots are not allowed for private content.'),
+            const SizedBox(height: 8),
+            Text(
+              'Screenshot attempts: $screenshotCount',
+              style: const TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Resume video playback after dialog is dismissed
+              final videoProvider = context.read<VideoProvider>();
+              if (videoProvider.controller != null) {
+                videoProvider.controller!.play();
+              }
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   void dispose() {
     _watermarkTimer?.cancel();
+    final screenshotService = context.read<ScreenshotProvider>().screenshotService;
+    screenshotService.disableScreenshotProtection();
     context.read<VideoProvider>().stopAndDispose();
     super.dispose();
   }
@@ -307,22 +352,24 @@ class _PlayerScreenState extends State<PlayerScreen> {
                               },
                             ),
                             const Spacer(),
-                            IconButton(
-                              icon: const Icon(Icons.speed, color: Colors.white),
-                              onPressed: _toggleSpeedMenu,
-                            ),
-                            if (currentVideo.qualities.length > 1)
+                            if (!securityProvider.isSecureMode) ...[
                               IconButton(
-                                icon: const Icon(Icons.settings, color: Colors.white),
-                                onPressed: _toggleQualityMenu,
+                                icon: const Icon(Icons.speed, color: Colors.white),
+                                onPressed: _toggleSpeedMenu,
                               ),
-                            IconButton(
-                              icon: Icon(
-                                _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
-                                color: Colors.white,
+                              if (currentVideo.qualities.length > 1)
+                                IconButton(
+                                  icon: const Icon(Icons.high_quality, color: Colors.white),
+                                  onPressed: _toggleQualityMenu,
+                                ),
+                              IconButton(
+                                icon: Icon(
+                                  _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                                  color: Colors.white,
+                                ),
+                                onPressed: _toggleFullScreen,
                               ),
-                              onPressed: _toggleFullScreen,
-                            ),
+                            ],
                           ],
                         ),
                       ),

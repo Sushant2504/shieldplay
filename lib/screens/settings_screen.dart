@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/security_provider.dart';
 import '../providers/video_provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/screenshot_provider.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -13,8 +14,8 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Settings'),
       ),
-      body: Consumer3<SecurityProvider, VideoProvider, ThemeProvider>(
-        builder: (context, securityProvider, videoProvider, themeProvider, child) {
+      body: Consumer4<SecurityProvider, VideoProvider, ThemeProvider, ScreenshotProvider>(
+        builder: (context, securityProvider, videoProvider, themeProvider, screenshotProvider, child) {
           return ListView(
             children: [
               _buildSection(
@@ -47,10 +48,10 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   ListTile(
                     title: const Text('Screenshot Attempts'),
-                    subtitle: Text('${securityProvider.screenshotCount} attempts'),
+                    subtitle: Text('${screenshotProvider.screenshotCount} attempts'),
                     trailing: IconButton(
                       icon: const Icon(Icons.refresh),
-                      onPressed: () => securityProvider.resetScreenshotCount(),
+                      onPressed: () => screenshotProvider.resetScreenshotCount(),
                     ),
                   ),
                 ],

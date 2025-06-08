@@ -52,6 +52,7 @@ dependencies:
   youtube_explode_dart: ^2.4.2
   youtube_player_flutter: ^9.1.1
   file_picker: ^10.1.9
+  flutter_launcher_icons: ^0.14.3
 
 dev_dependencies:
   flutter_test:
@@ -63,6 +64,13 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^3.0.1
+
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon.jpeg"
+
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

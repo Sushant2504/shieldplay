@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
-import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 import '../models/video_model.dart';
 import '../services/video_service.dart';
 import '../utils/video_utils.dart';
-import '../utils/constants.dart';
 import 'dart:io';
 
 class VideoProvider extends ChangeNotifier {

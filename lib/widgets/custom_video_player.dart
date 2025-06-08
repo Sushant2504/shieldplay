@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:provider/provider.dart';
 import '../providers/security_provider.dart';
-import '../utils/constants.dart';
 
 class CustomVideoPlayer extends StatefulWidget {
   final VideoPlayerController controller;
