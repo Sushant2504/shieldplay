@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/security_provider.dart';
 import '../providers/video_provider.dart';
+import '../providers/theme_provider.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -12,10 +13,23 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Settings'),
       ),
-      body: Consumer2<SecurityProvider, VideoProvider>(
-        builder: (context, securityProvider, videoProvider, child) {
+      body: Consumer3<SecurityProvider, VideoProvider, ThemeProvider>(
+        builder: (context, securityProvider, videoProvider, themeProvider, child) {
           return ListView(
             children: [
+              _buildSection(
+                title: 'Appearance',
+                children: [
+                  SwitchListTile(
+                    title: const Text('Dark Mode'),
+                    subtitle: const Text('Enable dark theme'),
+                    value: themeProvider.isDarkMode,
+                    onChanged: (value) => themeProvider.setThemeMode(
+                      value ? ThemeMode.dark : ThemeMode.light,
+                    ),
+                  ),
+                ],
+              ),
               _buildSection(
                 title: 'Security Settings',
                 children: [
@@ -28,7 +42,7 @@ class SettingsScreen extends StatelessWidget {
                   SwitchListTile(
                     title: const Text('Secure Mode'),
                     subtitle: const Text('Enable additional security features'),
-                    value: securityProvider.isSecureModeEnabled,
+                    value: securityProvider.isSecureMode,
                     onChanged: (value) => securityProvider.toggleSecureMode(),
                   ),
                   ListTile(

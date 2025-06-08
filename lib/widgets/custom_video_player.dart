@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:provider/provider.dart';
 import '../providers/security_provider.dart';
+import '../utils/constants.dart';
 
 class CustomVideoPlayer extends StatefulWidget {
   final VideoPlayerController controller;
@@ -64,97 +65,107 @@ class _CustomVideoPlayerState extends State<CustomVideoPlayer> {
   @override
   Widget build(BuildContext context) {
     return Stack(
+      fit: StackFit.expand,
       children: [
         // Video
-        Center(
-          child: AspectRatio(
-            aspectRatio: widget.controller.value.aspectRatio,
-            child: VideoPlayer(widget.controller),
+        VideoPlayer(widget.controller),
+        
+        // Watermark
+        Positioned(
+          bottom: 16,
+          right: 16,
+          child: Consumer<SecurityProvider>(
+            builder: (context, securityProvider, child) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  securityProvider.watermarkText,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              );
+            },
           ),
         ),
 
-        // Watermark
-        if (_showWatermark)
-          Positioned(
-            bottom: 16,
-            right: 16,
-            child: Consumer<SecurityProvider>(
-              builder: (context, securityProvider, child) {
-                return Text(
-                  '${securityProvider.watermarkText}\n${_lastWatermarkUpdate.toString().split('.')[0]}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    shadows: [
-                      Shadow(
-                        offset: Offset(1, 1),
-                        blurRadius: 2,
-                        color: Colors.black,
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-
         // Controls
         if (widget.showControls)
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: widget.onTogglePlay,
-              child: Container(
-                color: Colors.black26,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withOpacity(0.7),
+                  Colors.transparent,
+                  Colors.transparent,
+                  Colors.black.withOpacity(0.7),
+                ],
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Top controls
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Progress bar
-                    Slider(
-                      value: widget.currentPosition.inSeconds.toDouble(),
-                      min: 0,
-                      max: widget.totalDuration.inSeconds.toDouble(),
-                      onChanged: (value) {
-                        widget.onSeek(Duration(seconds: value.toInt()));
-                      },
+                    IconButton(
+                      icon: Icon(
+                        widget.isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                        color: Colors.white,
+                      ),
+                      onPressed: widget.onToggleFullScreen,
                     ),
-
-                    // Control buttons
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
+                  ],
+                ),
+                // Bottom controls
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      // Progress bar
+                      Slider(
+                        value: widget.currentPosition.inSeconds.toDouble(),
+                        min: 0,
+                        max: widget.totalDuration.inSeconds.toDouble(),
+                        onChanged: (value) {
+                          widget.onSeek(Duration(seconds: value.toInt()));
+                        },
+                      ),
+                      // Playback controls
+                      Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Play/Pause button
+                          Text(
+                            _formatDuration(widget.currentPosition),
+                            style: const TextStyle(color: Colors.white),
+                          ),
                           IconButton(
                             icon: Icon(
                               widget.isPlaying ? Icons.pause : Icons.play_arrow,
                               color: Colors.white,
+                              size: 32,
                             ),
                             onPressed: widget.onTogglePlay,
                           ),
-
-                          // Time display
                           Text(
-                            '${_formatDuration(widget.currentPosition)} / ${_formatDuration(widget.totalDuration)}',
+                            _formatDuration(widget.totalDuration),
                             style: const TextStyle(color: Colors.white),
-                          ),
-
-                          // Fullscreen button
-                          IconButton(
-                            icon: Icon(
-                              widget.isFullScreen
-                                  ? Icons.fullscreen_exit
-                                  : Icons.fullscreen,
-                              color: Colors.white,
-                            ),
-                            onPressed: widget.onToggleFullScreen,
                           ),
                         ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
       ],

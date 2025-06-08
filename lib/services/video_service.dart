@@ -3,7 +3,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:video_player/video_player.dart';
 import 'package:http/http.dart' as http;
+import 'package:permission_handler/permission_handler.dart';
 import '../models/video_model.dart';
+import '../utils/video_utils.dart';
+import '../utils/constants.dart';
 
 class VideoService {
   static const String _cachedVideosKey = 'cached_videos';
@@ -13,6 +16,10 @@ class VideoService {
   late Directory _cacheDir;
 
   Future<void> initialize() async {
+    // Request storage permissions
+    await Permission.storage.request();
+    await Permission.manageExternalStorage.request();
+
     final appDir = await getApplicationDocumentsDirectory();
     _cacheDir = Directory('${appDir.path}/$_cacheDirName');
     if (!await _cacheDir.exists()) {
@@ -20,67 +27,83 @@ class VideoService {
     }
   }
 
-  Future<List<VideoModel>> getAvailableVideos() async {
-    if (_cachedVideoList != null) {
-      return _cachedVideoList!;
+  Future<List<VideoModel>> getVideos() async {
+    try {
+      final localVideos = await _getLocalVideos();
+      return localVideos;
+    } catch (e) {
+      throw Exception('Failed to load videos: $e');
     }
+  }
 
-    // TODO: Implement actual video fetching from a server
-    final videos = [
-      VideoModel(
-        id: '1',
-        title: 'Sample Video 1',
-        path: 'https://example.com/video1.mp4',
-        thumbnail: 'https://example.com/thumbnail1.jpg',
-        duration: const Duration(minutes: 5),
-      ),
-      VideoModel(
-        id: '2',
-        title: 'Sample Video 2',
-        path: 'https://example.com/video2.mp4',
-        thumbnail: 'https://example.com/thumbnail2.jpg',
-        duration: const Duration(minutes: 10),
-      ),
-    ];
-
-    _cachedVideoList = videos;
+  Future<List<VideoModel>> _getLocalVideos() async {
+    final List<VideoModel> videos = [];
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final files = directory.listSync();
+      
+      for (var file in files) {
+        if (file is File && VideoUtils.isVideoFile(file.path)) {
+          final video = await VideoUtils.createVideoModel(file.path);
+          videos.add(video);
+        }
+      }
+    } catch (e) {
+      print('Error loading local videos: $e');
+    }
     return videos;
   }
 
+  Future<List<VideoModel>> _getNetworkVideos() async {
+    // TODO: Implement network video fetching
+    return [
+      VideoModel(
+        id: 'network1',
+        title: 'Sample Network Video 1',
+        path: 'https://example.com/video1.mp4',
+        thumbnail: 'https://example.com/thumbnail1.jpg',
+        duration: const Duration(minutes: 5),
+        source: VideoSource.network,
+      ),
+    ];
+  }
+
+  bool _isVideoFile(String path) {
+    final videoExtensions = [
+      '.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.m4v',
+      '.3gp', '.ts', '.mts', '.m2ts', '.vob', '.ogv', '.mxf', '.rm', '.rmvb'
+    ];
+    return videoExtensions.any((ext) => path.toLowerCase().endsWith(ext));
+  }
+
   Future<void> cacheVideo(VideoModel video) async {
-    final fileName = _getFileNameFromPath(video.path);
-    final cachedFile = File('${_cacheDir.path}/$fileName');
-
-    if (await cachedFile.exists()) {
-      return;
-    }
-
-    // Check cache size and remove oldest if needed
-    final cachedFiles = await _cacheDir.list().toList();
-    if (cachedFiles.length >= _maxCacheSize) {
-      final oldestFile = cachedFiles.first;
-      if (oldestFile is File) {
-        await oldestFile.delete();
-      }
-    }
+    if (video.source != VideoSource.network) return;
 
     try {
-      final response = await http.get(Uri.parse(video.path));
+      final response = await http.get(Uri.parse(video.path as String));
       if (response.statusCode == 200) {
-        await cachedFile.writeAsBytes(response.bodyBytes);
+        final cacheDir = await _getCacheDirectory();
+        final cacheFile = File('${cacheDir.path}/${video.id}.mp4');
+        await cacheFile.writeAsBytes(response.bodyBytes);
       } else {
         throw Exception('Failed to download video: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Error caching video: $e');
+      throw Exception('Failed to cache video: $e');
     }
   }
 
-  Future<void> removeFromCache(String path) async {
-    final fileName = _getFileNameFromPath(path);
-    final cachedFile = File('${_cacheDir.path}/$fileName');
-    if (await cachedFile.exists()) {
-      await cachedFile.delete();
+  Future<void> removeFromCache(VideoModel video) async {
+    if (video.source != VideoSource.network) return;
+
+    try {
+      final cacheDir = await _getCacheDirectory();
+      final cacheFile = File('${cacheDir.path}/${video.id}.mp4');
+      if (await cacheFile.exists()) {
+        await cacheFile.delete();
+      }
+    } catch (e) {
+      throw Exception('Failed to remove video from cache: $e');
     }
   }
 
@@ -112,18 +135,12 @@ class VideoService {
 
   Future<void> clearCache() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final cachedVideos = prefs.getStringList(_cachedVideosKey) ?? [];
-      
-      for (final videoPath in cachedVideos) {
-        await removeFromCache(videoPath);
+      final cacheDir = await _getCacheDirectory();
+      if (await cacheDir.exists()) {
+        await cacheDir.delete(recursive: true);
       }
-      
-      await prefs.setStringList(_cachedVideosKey, []);
-      _cachedVideoList = null;
-    } catch (error) {
-      print('Error clearing cache: $error');
-      rethrow;
+    } catch (e) {
+      throw Exception('Failed to clear cache: $e');
     }
   }
 
@@ -142,5 +159,14 @@ class VideoService {
 
   String _getFileNameFromPath(String path) {
     return path.split('/').last;
+  }
+
+  Future<Directory> _getCacheDirectory() async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final cacheDir = Directory('${appDir.path}/${AppConstants.cacheDirectory}');
+    if (!await cacheDir.exists()) {
+      await cacheDir.create(recursive: true);
+    }
+    return cacheDir;
   }
 } 

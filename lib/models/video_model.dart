@@ -1,18 +1,30 @@
+import 'package:flutter/material.dart';
+
+enum VideoSource {
+  local,
+  network,
+  cache,
+}
+
 class VideoModel {
   final String id;
   final String title;
   final String path;
   final String thumbnail;
   final Duration duration;
-  bool isCached;
+  final VideoSource source;
+  final bool isCached;
+  final String? quality;
 
-  VideoModel({
+  const VideoModel({
     required this.id,
     required this.title,
     required this.path,
     required this.thumbnail,
     required this.duration,
+    this.source = VideoSource.network,
     this.isCached = false,
+    this.quality,
   });
 
   VideoModel copyWith({
@@ -21,7 +33,9 @@ class VideoModel {
     String? path,
     String? thumbnail,
     Duration? duration,
+    VideoSource? source,
     bool? isCached,
+    String? quality,
   }) {
     return VideoModel(
       id: id ?? this.id,
@@ -29,7 +43,9 @@ class VideoModel {
       path: path ?? this.path,
       thumbnail: thumbnail ?? this.thumbnail,
       duration: duration ?? this.duration,
+      source: source ?? this.source,
       isCached: isCached ?? this.isCached,
+      quality: quality ?? this.quality,
     );
   }
 
@@ -40,7 +56,9 @@ class VideoModel {
       'path': path,
       'thumbnail': thumbnail, 
       'duration': duration.inSeconds,
+      'source': source.toString(),
       'isCached': isCached,
+      'quality': quality,
     };
   }
 
@@ -51,7 +69,9 @@ class VideoModel {
       path: json['path'] as String,
       thumbnail: json['thumbnail'] as String,
       duration: Duration(seconds: json['duration'] as int),
+      source: VideoSource.values[json['source'] as int],
       isCached: json['isCached'] as bool? ?? false,
+      quality: json['quality'] as String?,
     );
   }
 }

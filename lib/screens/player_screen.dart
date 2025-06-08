@@ -4,7 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 import '../providers/video_provider.dart';
 import '../providers/security_provider.dart';
-import '../widgets/custom_video_player.dart';
+import '../utils/constants.dart';
+import '../utils/video_utils.dart';
 
 class PlayerScreen extends StatefulWidget {
   final String videoId;
@@ -34,7 +35,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       (v) => v.id == widget.videoId,
       orElse: () => throw Exception('Video not found'),
     );
-    await videoProvider.initializeVideo(video.path);
+    await videoProvider.initializeVideo(video);
   }
 
   void _toggleControls() {
@@ -55,21 +56,39 @@ class _PlayerScreenState extends State<PlayerScreen> {
       builder: (context, videoProvider, securityProvider, child) {
         if (videoProvider.error != null) {
           return Scaffold(
+            backgroundColor: Colors.black,
             appBar: AppBar(
-              title: const Text('Error'),
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => GoRouter.of(context).pop(),
+              ),
             ),
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    'Error: ${videoProvider.error}',
-                    style: const TextStyle(color: Colors.red),
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.red,
+                    size: 48,
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => GoRouter.of(context).pop(),
-                    child: const Text('Go Back'),
+                  Text(
+                    'Error: ${videoProvider.error}',
+                    style: const TextStyle(color: Colors.white),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: () => _initializeVideo(),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppConstants.primaryColor,
+                      foregroundColor: Colors.white,
+                    ),
                   ),
                 ],
               ),
@@ -77,26 +96,48 @@ class _PlayerScreenState extends State<PlayerScreen> {
           );
         }
 
-        return Scaffold(
-          backgroundColor: Colors.black,
-          body: SafeArea(
-            child: GestureDetector(
-              onTap: _toggleControls,
+        if (videoProvider.controller == null) {
+          return Scaffold(
+            backgroundColor: Colors.black,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Loading video...',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return WillPopScope(
+          onWillPop: () async {
+            if (_isFullScreen) {
+              setState(() {
+                _isFullScreen = false;
+              });
+              return false;
+            }
+            return true;
+          },
+          child: Scaffold(
+            backgroundColor: Colors.black,
+            body: SafeArea(
               child: Stack(
                 children: [
                   Center(
                     child: AspectRatio(
-                      aspectRatio: videoProvider.controller?.value.aspectRatio ?? 16 / 9,
-                      child: CustomVideoPlayer(
-                        controller: videoProvider.controller!,
-                        showControls: _showControls,
-                        isFullScreen: _isFullScreen,
-                        onToggleFullScreen: _toggleFullScreen,
-                        onTogglePlay: videoProvider.togglePlay,
-                        onSeek: videoProvider.seekTo,
-                        currentPosition: videoProvider.currentPosition,
-                        totalDuration: videoProvider.totalDuration,
-                        isPlaying: videoProvider.isPlaying,
+                      aspectRatio: videoProvider.aspectRatio,
+                      child: GestureDetector(
+                        onTap: _toggleControls,
+                        child: VideoPlayer(videoProvider.controller!),
                       ),
                     ),
                   ),
@@ -106,10 +147,92 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       left: 0,
                       right: 0,
                       child: Container(
-                        color: Colors.black54,
-                        child: IconButton(
-                          icon: const Icon(Icons.arrow_back, color: Colors.white),
-                          onPressed: () => GoRouter.of(context).pop(),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.7),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back, color: Colors.white),
+                              onPressed: () => GoRouter.of(context).pop(),
+                            ),
+                            const Spacer(),
+                            IconButton(
+                              icon: Icon(
+                                _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                                color: Colors.white,
+                              ),
+                              onPressed: _toggleFullScreen,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  if (_showControls)
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.7),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            VideoProgressIndicator(
+                              videoProvider.controller!,
+                              allowScrubbing: true,
+                              colors: VideoProgressColors(
+                                playedColor: AppConstants.primaryColor,
+                                bufferedColor: Colors.grey[400]!,
+                                backgroundColor: Colors.grey[600]!,
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                IconButton(
+                                  icon: Icon(
+                                    videoProvider.isPlaying ? Icons.pause : Icons.play_arrow,
+                                    color: Colors.white,
+                                  ),
+                                  onPressed: () => videoProvider.togglePlay(),
+                                ),
+                                Text(
+                                  '${VideoUtils.formatDuration(videoProvider.currentPosition)} / ${VideoUtils.formatDuration(videoProvider.totalDuration)}',
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                                const Spacer(),
+                                if (securityProvider.watermarkText.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 8.0),
+                                    child: Text(
+                                      securityProvider.watermarkText,
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.7),
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ),

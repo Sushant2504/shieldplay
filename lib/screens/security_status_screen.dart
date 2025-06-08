@@ -33,13 +33,13 @@ class SecurityStatusScreen extends StatelessWidget {
               const SizedBox(height: 16),
               _buildStatusCard(
                 title: 'Secure Mode',
-                isEnabled: securityProvider.isSecureModeEnabled,
+                isEnabled: securityProvider.isSecureMode,
                 onToggle: () => securityProvider.toggleSecureMode(),
                 children: [
                   _buildStatItem(
                     icon: Icons.security,
                     title: 'Security Level',
-                    value: securityProvider.isSecureModeEnabled ? 'High' : 'Normal',
+                    value: securityProvider.isSecureMode ? 'High' : 'Normal',
                   ),
                 ],
               ),
