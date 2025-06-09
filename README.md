@@ -1,22 +1,81 @@
-# Secure Video Player
+# ShieldPlay - Secure Video Player
 
-A Flutter application that provides a secure video player with watermarking and screenshot protection features.
+ShieldPlay is a Flutter-based video player application with advanced security features designed to protect private video content. The app provides a secure environment for viewing sensitive videos with features like screenshot protection, secure mode, and dynamic watermarking.
 
 ## Features
 
-- Custom video player with basic controls
-- Dynamic watermarking system with timestamp
-- Screenshot detection and prevention
-- Secure mode with additional restrictions
-- Video caching for offline playback
-- Clean, modern UI
+### Security Features
+- **Screenshot Protection**: Prevents users from taking screenshots of private content
+- **Secure Mode**: Enables additional security features and restricts video controls
+- **Dynamic Watermarking**: Adds customizable watermarks to videos with timestamp
+- **Screenshot Attempt Tracking**: Monitors and logs screenshot attempts
 
-## Setup Instructions
+### Video Player Features
+- Support for both local and network videos
+- Multiple video quality options
+- Adjustable playback speed
+- Full-screen mode
+- Video progress tracking
+- Cache management for network videos
 
+### UI/UX Features
+- Dark/Light theme support
+- Grid and List view options
+- Search functionality
+- Playlist organization
+- Modern Material Design 3 interface
+
+## Technical Implementation
+
+### Architecture
+- Provider pattern for state management
+- Service-based architecture for core functionality
+- Clean separation of concerns between UI and business logic
+
+### Key Components
+- `VideoProvider`: Manages video playback and state
+- `SecurityProvider`: Handles security features and settings
+- `ScreenshotProvider`: Manages screenshot protection and tracking
+- `ThemeProvider`: Controls app theming and appearance
+
+## CI/CD Pipeline
+
+The project uses GitHub Actions with Fastlane for automated deployment:
+
+### iOS Pipeline
+```yaml
+- Fastlane match for certificate and provisioning profile management
+- Automated version bumping
+- App Store deployment
+- TestFlight distribution
+```
+
+### Android Pipeline
+```yaml
+- Automated version bumping
+- Play Store deployment
+- Internal testing track distribution
+```
+
+### Pipeline Features
+- Automated testing
+- Code signing
+- Version management
+- Release notes generation
+- Automated deployment to stores
+
+## Getting Started
+
+### Prerequisites
+- Flutter SDK (latest stable version)
+- Xcode (for iOS development)
+- Android Studio (for Android development)
+- Fastlane (for CI/CD)
+
+### Installation
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/secure-video-player.git
-cd secure-video-player
+git clone https://github.com/yourusername/shieldplay.git
 ```
 
 2. Install dependencies:
@@ -29,80 +88,35 @@ flutter pub get
 flutter run
 ```
 
-## Project Structure
-
-```
-lib/
-  ├── models/
-  │   └── video_model.dart
-  ├── providers/
-  │   ├── video_provider.dart
-  │   ├── security_provider.dart
-  │   └── screenshot_provider.dart
-  ├── screens/
-  │   ├── home_screen.dart
-  │   ├── player_screen.dart
-  │   ├── settings_screen.dart
-  │   └── security_status_screen.dart
-  ├── services/
-  │   ├── video_service.dart
-  │   ├── security_service.dart
-  │   └── screenshot_service.dart
-  ├── widgets/
-  │   └── custom_video_player.dart
-  └── main.dart
+### Environment Setup
+1. Configure Fastlane:
+```bash
+cd ios && fastlane init
+cd android && fastlane init
 ```
 
-## Testing Screenshot Detection
+2. Set up environment variables for CI/CD:
+```bash
+# Add to your CI/CD secrets
+FASTLANE_USER=your_app_store_connect_email
+FASTLANE_PASSWORD=your_app_specific_password
+MATCH_PASSWORD=your_match_encryption_password
+```
 
-1. Launch the app on a physical device
-2. Navigate to the video player screen
-3. Try to take a screenshot using the device's screenshot shortcut
-4. The app should detect the attempt and show a warning
+## Contributing
 
-## Known Limitations
-
-- Screenshot detection may not work on all devices
-- Watermark updates every 30 seconds
-- Video caching is limited to 5 videos
-- Secure mode restrictions are basic
-
-## Architecture Decisions
-
-- Used Provider for state management
-- Implemented GoRouter for navigation
-- Separated concerns into services and providers
-- Used platform channels for screenshot detection
-
-## Security Approach
-
-- Screenshot protection using platform-specific implementations
-- Watermarking with dynamic timestamps
-- Secure mode with playback restrictions
-- Video caching with size limits
-
-## Future Improvements
-
-- Add more video player controls
-- Implement advanced watermarking options
-- Add video quality selection
-- Improve screenshot detection reliability
-- Add more security features
-
-## Dependencies
-
-- flutter: ^3.0.0
-- provider: ^6.0.5
-- go_router: ^13.0.0
-- video_player: ^2.8.1
-- shared_preferences: ^2.2.2
-- path_provider: ^2.1.1
-- intl: ^0.18.1
-- flutter_secure_storage: ^9.0.0
-- permission_handler: ^11.0.1
-- flutter_screen_lock: ^9.0.0
-- flutter_secure_screen: ^1.0.0
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Flutter team for the amazing framework
+- Fastlane team for the CI/CD tools
+- All contributors who have helped shape this project
